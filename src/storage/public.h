@@ -7,11 +7,26 @@ namespace xforce { namespace fooskv {
 
 typedef JsonType Config;
 typedef LogicTime time_t;
+typedef NoTable uint16_t;
 
-enum ErrNo {
-  kOK = 0,
-  kOther = 100,
+struct Cmd {
+  typedef uint16_t TypeCmd;
+
+  static const TypeCmd kCreateTable = 1;
+  static const TypeCmd kDropTable = 2;
+  static const TypeCmd kModify = 3;
+
+  TypeCmd code;
 };
+
+struct ErrNo {
+  typedef uint16_t TypeErrNo;
+
+  static const TypeErrNo kOK = 0;
+  static const TypeErrNo kOther = 100;
+
+  TypeErrNo code;
+}
 
 struct KV {
   Slice Key;
