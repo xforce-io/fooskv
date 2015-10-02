@@ -4,9 +4,9 @@ namespace fooskv {
 
 class DB {
  public:
-  int AddKV(const KV& kv);
-  int RemoveKV(const Key& key);
-  const KV& FindKV(const Key& key);
+  int AddKV(const KVBatch& kv_batch);
+  int RemoveKV(const KeyBatch& key_batch);
+  const KV& FindKV(const KeyBatch& key_batch);
 
  private:
 };
