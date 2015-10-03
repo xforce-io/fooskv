@@ -16,7 +16,10 @@ class DeviceLog {
    
  public:
   inline DeviceLog& operator=(const Self& other);
-  void Assign(const FlushMsg& msg);
+
+  void AssignAddLog(NoTable no_table, const KV& kv, LogicTime logic_time);
+  void AssignRemoveLog(NoTable no_table, const KV& kv, LogicTime logic_time);
+
   inline bool CheckChecksum() const;
 
   /*
@@ -49,14 +52,30 @@ class DeviceLog {
   uint32_t checksum_;
   DeviceCmd::EnumDeviceCmd cmd_;
   time_t logic_time_;
-  Key key_;
-  int len_;
+  KeyHash key_hash_;
+  int len_all_;
+  int len_key_;
   char content_[];
 };
 
 DeviceLog& DeviceLog::operator=(const Self& other) {
   memcpy(&checksum_, &(other.checksum_), GetContentOffset() + other.len_);
   return *this;
+}
+
+void AssignAddLog(NoTable no_table, const KV& kv, LogicTime logic_time) {
+  cmd = DeviceCmd::kAdd;
+  logic_time_ = logic_time;
+  key_hash_ = GenKeyHash(no_table, KV.Key);
+
+  //TODO : implementation
+}
+
+void AssignRemoveLog(NoTable no_table, const KV& kv, LogicTime logic_time) {
+  cmd = DeviceCmd::kRemove;
+  logic_time_ = logic_time;
+
+  //TODO : implementation
 }
 
 bool DeviceLog::CheckChecksum() const {

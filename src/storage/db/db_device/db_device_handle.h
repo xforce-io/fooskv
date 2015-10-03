@@ -22,9 +22,9 @@ class DBDeviceWriteHandle {
    *    index: index of the db file, if -1, seek to the last file
    *    offset: offset of the pointer, if -1, seek to the end
    */
-  bool Reset(DBDeviceDirIterator dir_iter, off_t offset=0);
-  inline bool Reset(int index, off_t offset=0);
-  bool Reset(const std::string& filepath, off_t offset=0);
+  bool Reset(DBDeviceDirIterator dir_iter, Offset offset=0);
+  inline bool Reset(Index index, Offset offset=0);
+  bool Reset(const std::string& filepath, Offset offset=0);
   bool SeekToTheEnd();
 
   /*
@@ -49,9 +49,9 @@ class DBDeviceWriteHandle {
 
   const std::string& GetFilePath() const { return filepath_; }
   int GetIndex() const { return dir_iter_.GetIndex(); }
-  inline off_t GetOffset() const;
+  inline Offset GetOffset() const;
   DeviceLog* GetCurrentLog() { return cur_log_; }
-  inline DeviceLog* GetLog(off_t offset);
+  inline DeviceLog* GetLog(Offset offset);
   ssize_t GetRoomLeft() const { return db_device_dir_->GetMaxSizeDeviceBlock() - GetOffset(); }
   bool IsValid() const { return db_device_dir_->End() != dir_iter_; }
   void Flush(bool at_close=false);
@@ -92,8 +92,8 @@ class DBDeviceReadHandle {
   
  public:
   DBDeviceReadHandle(const DBDeviceDir& db_device_dir);
-  bool Reset(DBDeviceDirIterator dir_iter, off_t offset=0);
-  inline bool Reset(int index, off_t offset=0);
+  bool Reset(DBDeviceDirIterator dir_iter, Offset offset=0);
+  inline bool Reset(Index index, Offset offset=0);
 
   /*
    * @return: 
@@ -106,12 +106,12 @@ class DBDeviceReadHandle {
   const DBDeviceDirIterator& GetDirIter() const { return dir_iter_; }
 
   int GetIndex() const { return dir_iter_.GetIndex(); }
-  off_t GetOffset() const { return lseek(fd_, 0, SEEK_CUR); }
+  Offset GetOffset() const { return lseek(fd_, 0, SEEK_CUR); }
   bool IsValid() const { return db_device_dir_->End() != dir_iter_; }
   virtual ~DBDeviceReadHandle();
 
  private:
-  void ClearExpiredBackupItems_(int index_except);
+  void ClearExpiredBackupItems_(Index index_except);
 
  private:
   //const
@@ -124,7 +124,7 @@ class DBDeviceReadHandle {
   Backups backups_;
 };
 
-bool DBDeviceWriteHandle::Reset(int index, off_t offset) {
+bool DBDeviceWriteHandle::Reset(Index index, Offset offset) {
   return index>=0 ?
     ( db_device_dir_->NewFile(index) ? 
         Reset(DBDeviceDirIterator(*db_device_dir_, index), offset) : 
@@ -161,15 +161,15 @@ void DBDeviceWriteHandle::MapUnlock() {
   pthread_rwlock_unlock(&rwlock_);
 }
 
-off_t DBDeviceWriteHandle::GetOffset() const {
+Offset DBDeviceWriteHandle::GetOffset() const {
   return RCAST<char*>(cur_log_) - start_addr_;
 }
 
-DeviceLog* DBDeviceWriteHandle::GetLog(off_t offset) { 
+DeviceLog* DBDeviceWriteHandle::GetLog(Offset offset) { 
   return RCAST<DeviceLog*>(start_addr_+offset); 
 }
 
-bool DBDeviceReadHandle::Reset(int index, off_t offset) {
+bool DBDeviceReadHandle::Reset(Index index, Offset offset) {
   return index>=0 ? 
     Reset(DBDeviceDirIterator(*db_device_dir_, index), offset) :
     Reset(db_device_dir_->Last(), offset);

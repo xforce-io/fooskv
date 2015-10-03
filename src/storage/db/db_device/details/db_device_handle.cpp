@@ -20,14 +20,14 @@ DBDeviceWriteHandle::DBDeviceWriteHandle(
   MEGA_ASSERT(0 == pthread_rwlock_init(&rwlock_, NULL));
 }
 
-bool DBDeviceWriteHandle::Reset(DBDeviceDirIterator dir_iter, off_t offset) {
+bool DBDeviceWriteHandle::Reset(DBDeviceDirIterator dir_iter, Offset offset) {
   int ret;
   int new_fd;
   ssize_t filesize;
   char* new_addr;
   struct stat state_file;
 
-  MEGA_FAIL_HANDLE_WARN(offset > SCAST<off_t>(db_device_dir_->GetMaxSizeDeviceBlock()),
+  MEGA_FAIL_HANDLE_WARN(offset > SCAST<Offset>(db_device_dir_->GetMaxSizeDeviceBlock()),
       "offset_too_big_for_write_handle[" << offset << "]");
 
   if (dir_iter!=dir_iter_) {
@@ -76,14 +76,14 @@ bool DBDeviceWriteHandle::Reset(DBDeviceDirIterator dir_iter, off_t offset) {
   return false;
 }
 
-bool DBDeviceWriteHandle::Reset(const std::string& filepath, off_t offset) {
+bool DBDeviceWriteHandle::Reset(const std::string& filepath, Offset offset) {
   int ret;
   int new_fd;
   ssize_t filesize;
   char* new_addr;
   struct stat state_file;
 
-  MEGA_FAIL_HANDLE_WARN(offset > SCAST<off_t>(db_device_dir_->GetMaxSizeDeviceBlock()),
+  MEGA_FAIL_HANDLE_WARN(offset > SCAST<Offset>(db_device_dir_->GetMaxSizeDeviceBlock()),
       "offset_too_big_for_write_handle[" << offset << "]");
 
   if (filepath!=filepath_) {
@@ -269,7 +269,7 @@ DBDeviceReadHandle::DBDeviceReadHandle(
   dir_iter_(db_device_dir),
   fd_(-1) {}
 
-bool DBDeviceReadHandle::Reset(DBDeviceDirIterator dir_iter, off_t offset) {
+bool DBDeviceReadHandle::Reset(DBDeviceDirIterator dir_iter, Offset offset) {
   int ret;
   struct stat state_file;
 
@@ -316,7 +316,7 @@ DBDeviceReadHandle::~DBDeviceReadHandle() {
   }
 }
 
-void DBDeviceReadHandle::ClearExpiredBackupItems_(int index_except) {
+void DBDeviceReadHandle::ClearExpiredBackupItems_(Index index_except) {
   for (Backups::const_iterator iter = backups_.begin(); iter != backups_.end(); ) {
     if ( Time::GetCurrentSec() - iter->second.timestamp_in_sec > int64_t(kBackupItemExpireTimeInSec) 
         && index_except != iter->first ) {

@@ -27,9 +27,9 @@ class DBBase {
 
   bool HandleWrites_();
 
-  inline ErrNo ModifyKVs_(const ModifyMsg& modify_msg);
-  inline ErrNo AddKV_(const KV& kv);
-  inline ErrNo RemoveKV_(const KV& kv);
+  inline ErrNo ModifyKVs_(const CmdModify& cmd_modify, LogicTime logic_time);
+  inline ErrNo AddKV_(NoTable no_table, const KV& kv, LogicTime logic_time);
+  inline ErrNo RemoveKV_(NoTable no_table, const KVBatch& kv_batch, LogicTime logic_time);
 
   static void* WriteHandler_(void* args);
 
@@ -134,7 +134,7 @@ bool DBBase<DBIndex>::HandleWrites_() {
 
     DBCmd& db_cmd = *(msg->msg_header);
     switch (db_cmd.no_cmd.code) {
-      case ModifyMsg::kCmd : {
+      case CmdModify::kCmd : {
         db_cmd.g_errno = ModifyKVs_(*(db_cmd.body.cmd_modify));
         break;
       }
@@ -149,29 +149,32 @@ bool DBBase<DBIndex>::HandleWrites_() {
 }
 
 template <typename DBIndex>
-ErrNo DBBase<DBIndex>::ModifyKVs_(const ModifyMsg& modify_msg) {
-  const KVBatch& kv_batch = *(modify_msg.req.kv_batch);
-  ErrNo* errno = modify_msg.resp.errno;
-  switch (modify_msg.category) {
-    case ModifyMsg::kAdd : {
+ErrNo DBBase<DBIndex>::ModifyKVs_(const CmdModify& cmd_modify, LogicTime logic_time) {
+  NoTable no_table = cmd_modify.req.no_table;
+  const KVBatch& kv_batch = *(cmd_modify.req.kv_batch);
+  ErrNo* errno = cmd_modify.resp.errno;
+  switch (cmd_modify.category) {
+    case CmdModify::kAdd : {
       for (size_t i=0; i < kv_batch.num; ++i) {
-        errno[i] = AddKV_(kv_batch.kvs[i]);
+        errno[i] = AddKV_(no_table, kv_batch.kvs[i], logic_time+i);
       }
       break;
     }
-    case ModifyMsg::kRemove : {
+    case CmdModify::kRemove : {
       for (size_t i=0; i < kv_batch.num; ++i) {
-        errno[i] = RemoveKV_(kv_batch.kvs[i]);
+        errno[i] = RemoveKV_(no_table, kv_batch.kvs[i], logic_time+i);
       }
       break;
     }
-    case ModifyMsg::kUpdate : {
+    case CmdModify::kUpdate : {
       for (size_t i=0; i < kv_batch.num; ++i) {
-        errno[i] = RemoveKV_(kv_batch.kvs[i]);
-        if (ErrNo::kOK != errno[i]) {
-          continue;
+        errno[i] = RemoveKV_(no_table, kv_batch.kvs[i], logic_time+i);
+      }
+
+      for (size_t i=0; i < kv_batch.num; ++i) {
+        if (ErrNo::kOK == errno[i]) {
+          errno[i] = AddKV_(no_table, kv_batch.kvs[i]);
         }
-        errno[i] = AddKV_(kv_batch.kvs[i]);
       }
       break;
     }
@@ -183,25 +186,21 @@ ErrNo DBBase<DBIndex>::ModifyKVs_(const ModifyMsg& modify_msg) {
 }
 
 template <typename DBIndex>
-ErrNo DBBase<DBIndex>::AddKV_(const KV& kv) {
-  ErrNo errno = db_device_->Add(kv);
+ErrNo DBBase<DBIndex>::AddKV_(NoTable no_table, const KV& kv, LogicTime logic_time) {
+  ErrNo errno = db_device_->Add(no_table, kv, logic_time);
   if (ErrNo::kOK != errno) {
     return errno;
   }
-
-  db_index_->Add(kv);
-  return ErrNo::kOK;
+  return db_index_->Add(no_table, kv, logic_time);
 }
 
 template <typename DBIndex>
-ErrNo DBBase<DBIndex>::RemoveKV_(const KV& kv) {
-  ErrNo errno = db_device_->Remove(kv);
+ErrNo DBBase<DBIndex>::RemoveKV_(NoTable no_table, const KV& kv, LogicTime logic_time) {
+  ErrNo errno = db_index_->Remove(no_table, kv_batch, logic_time);
   if (ErrNo::kOK != errno) {
-    return errno;
+    return errno;;
   }
-
-  db_index_->Remove(kv);
-  return ErrNo::kOK;
+  return db_device_->Remove(no_table, kv_batch, logic_time);
 }
 
 template <typename DBIndex>
