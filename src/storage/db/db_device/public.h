@@ -21,7 +21,7 @@ inline KeyHash GenKeyHash(const Slice& key) {
 }
 
 typedef int Index;
-typedef off_t Offset;
+typedef int Offset;
 
 struct DevicePos {
   Index index;

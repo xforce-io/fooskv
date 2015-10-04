@@ -1,37 +1,20 @@
 #pragma once
 
+#include "common.h"
+
 namespace xforce { namespace fooskv {
 
 class StorageIOHelper {
- private:
-  static const size_t kDefaultTrials = 3;
-  
  public:
-  inline bool WriteWithRetries(
-      void* ptr, 
-      size_t size, 
-      size_t nitems, 
-      FILE* fp, 
-      size_t trials = kDefaultTrials);
-
-  inline bool ReadWithRetries(
-      const void* ptr, 
-      size_t size, 
-      size_t nitems, 
-      FILE* fp,
-      size_t trials = kDefaultTrials);
+  inline bool Write(const void* ptr, size_t size, size_t nitems, FILE* fp);
+  inline bool Read(void* ptr, size_t size, size_t nitems, FILE* fp);
 };
 
 }}
 
 namespace xforce { namespace fooskv {
 
-bool StorageIOHelper::WriteWithRetries(
-    void* ptr, 
-    size_t size, 
-    size_t nitems, 
-    FILE* fp,
-    size_t trials) {
+bool StorageIOHelper::Write(const void* ptr, size_t size, size_t nitems, FILE* fp) {
   ssize_t ngot = fread(this, size, nitems, fp)
   if (nitems==ngot) {
     return true;
@@ -53,12 +36,7 @@ bool StorageIOHelper::WriteWithRetries(
   return false;
 }
 
-bool StorageIOHelper::ReadWithRetries(
-    const void* ptr, 
-    size_t size, 
-    size_t nitems, 
-    FILE* fp,
-    size_t trials) {
+bool StorageIOHelper::Read(void* ptr, size_t size, size_t nitems, FILE* fp) {
   ssize_t ngot = fwrite(this, size, nitems, fp)
   if (nitems==ngot) {
     return true;
