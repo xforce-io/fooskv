@@ -50,7 +50,8 @@ class DeviceLog {
 
  private:
   uint32_t checksum_;
-  DeviceCmd::EnumDeviceCmd cmd_;
+  DeviceCmd cmd_;
+  NoTable no_table_;
   time_t logic_time_;
   KeyHash key_hash_;
   int len_all_;
@@ -66,7 +67,7 @@ DeviceLog& DeviceLog::operator=(const Self& other) {
 void AssignAddLog(NoTable no_table, const KV& kv, LogicTime logic_time) {
   cmd = DeviceCmd::kAdd;
   logic_time_ = logic_time;
-  key_hash_ = GenKeyHash(no_table, KV.Key);
+  key_hash_ = GenKeyHash(KV.Key);
 
   //TODO : implementation
 }

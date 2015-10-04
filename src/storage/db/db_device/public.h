@@ -5,20 +5,19 @@
 namespace xforce { namespace fooskv {
 
 struct DeviceCmd {
-  enum Cmd {
-    kUninit,
-    kCreateTable,
-    kDropTable,
-    kAdd,
-    kRemove,
-    kNumCmd,
-  };
+  uint16_t code;
 };
+
+static const DeviceCmd kUninit = {0};
+static const DeviceCmd kCreateTable = {1};
+static const DeviceCmd kDropTable = {2};
+static const DeviceCmd kAdd = {3};
+static const DeviceCmd kRemove = {4};
 
 typedef size_t KeyHash;
 
-inline KeyHash GenKeyHash(NoTable no_table, const Slice& key) {
-  return Hash::MurmurHash64(key.Data(), key.Size()) ^ (no_table << 48);
+inline KeyHash GenKeyHash(const Slice& key) {
+  return Hash::MurmurHash64(key.Data(), key.Size());
 }
 
 typedef int Index;

@@ -10,23 +10,21 @@ typedef LogicTime time_t;
 typedef NoTable uint16_t;
 
 struct Cmd {
-  typedef uint16_t TypeCmd;
-
-  static const TypeCmd kCreateTable = 1;
-  static const TypeCmd kDropTable = 2;
-  static const TypeCmd kModify = 3;
-
-  TypeCmd code;
+  uint16_t code;
 };
 
+static const Cmd kCreateTable = {1};
+static const Cmd kDropTable = {2};
+static const Cmd kModify = {3};
+
 struct ErrNo {
-  typedef uint16_t TypeErrNo;
+  uint16_t code;
+};
 
-  static const TypeErrNo kOK = 0;
-  static const TypeErrNo kOther = 100;
-
-  TypeErrNo code;
-}
+static const ErrNo kOK = {0};
+static const ErrNo kTableNotExist = {1};
+static const ErrNo kKeyNotExist = {2};
+static const ErrNo kOther = {100};
 
 struct KV {
   Slice Key;
