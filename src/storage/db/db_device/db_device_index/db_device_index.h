@@ -13,7 +13,7 @@ class DBDeviceIndex {
 
   bool Init(const Config& config);
 
-  ErrNo CreateTable(NoTable no_table, size_t num_buckets);
+  ErrNo CreateTable(NoTable no_table, const std::string& name_table, size_t num_buckets);
   ErrNo DropTable(NoTable no_table);
   inline ErrNo Add(NoTable no_table, KeyHash key_hash, DevicePos device_pos);
   inline ErrNo Remove(NoTable no_table, KeyHash key_hash);

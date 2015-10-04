@@ -6,7 +6,12 @@ namespace xforce { namespace fooskv {
 
 class TableIndex {
  public:
-  TableIndex(const Config& config, NoTable no_table, size_t num_buckets); 
+  TableIndex(
+      const Config& config, 
+      NoTable no_table, 
+      const std::string& name_table,
+      size_t num_buckets); 
+
   inline ErrNo Add(KeyHash key_hash, DevicePos device_pos);
   inline ErrNo Remove(KeyHash key_hash);
 

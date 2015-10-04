@@ -7,8 +7,13 @@ DBDeviceIndex::DBDeviceIndex() :
 
 bool DBDeviceIndex::Init(const Config& config);
 
-ErrNo DBDeviceIndex::CreateTable(NoTable no_table, size_t num_buckets) {
-  table_indexes_.insert(std::make_pair(no_table, new TableIndex(no_table, num_buckets)));
+ErrNo DBDeviceIndex::CreateTable(
+    NoTable no_table, 
+    const std::string& name_table, 
+    size_t num_buckets) {
+  table_indexes_.insert(std::make_pair(
+      no_table, 
+      new TableIndex(config, no_table, name_table, num_buckets)));
 }
 
 ErrNo DBDeviceIndex::DropTable(NoTable no_table) {

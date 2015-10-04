@@ -4,28 +4,39 @@
 
 namespace xforce { namespace fooskv {
 
+class BucketDumper;
+
 class TableIndexBucket {
  private:
   typedef SpinLock Lock;
-  typedef MultiCowBtreeMap<KeyHash, DevicePos> Container;
+  typedef MultiCowBtreeMap<KeyHash, DevicePos> Index;
   
  public:
-  TableIndexBucket(const Config& config, NoTable no_table, size_t no_bucket);
+  TableIndexBucket(
+      const Config& config, 
+      NoTable no_table, 
+      const std::string& name_table,
+      size_t no_bucket,
+      bool* end);
 
   inline ErrNo Add(KeyHash key_hash, DevicePos device_pos);
   inline ErrNo Remove(KeyHash key_hash);
 
-  bool Dump();
-
   virtual ~TableIndexBucket();
+ 
+ private:
+  bool DumpIndex_(); 
 
  private:
   const Config& config_;
   NoTable no_table_;
+  const std::string& name_table_;
   size_t no_bucket_; 
 
   Lock lock_;
-  MultiCowBtreeMap* index_;
+  Index* index_;
+
+  BucketDumper* bucket_dumper_;
 };
 
 }}

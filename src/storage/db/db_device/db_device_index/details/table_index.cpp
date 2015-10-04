@@ -2,11 +2,15 @@
 
 namespace xforce { namespace fooskv {
 
-TableIndex::TableIndex(const Config& config, NoTable no_table, size_t num_buckets) :
-    num_buckets_(num_buckets) {
+TableIndex::TableIndex(
+    const Config& config, 
+    NoTable no_table, 
+    const std::string& name_table,
+    size_t num_buckets) :
+  num_buckets_(num_buckets) {
   table_index_buckets_ = new TableIndexBucket [num_buckets];
   for (size_t i=0; i<num_buckets_; ++i) {
-    XFC_NEW(table_index_buckets_[i], TableIndexBucket(config, no_table, i))
+    XFC_NEW(table_index_buckets_[i], TableIndexBucket(config, no_table, name_table, i))
   }
 }
 
