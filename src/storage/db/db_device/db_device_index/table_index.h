@@ -6,7 +6,9 @@ namespace xforce { namespace fooskv {
 
 class TableIndex {
  public:
-  TableIndex(
+  TableIndex();
+
+  bool Init(
       const Config& config, 
       NoTable no_table, 
       const std::string& name_table,
@@ -14,6 +16,8 @@ class TableIndex {
 
   inline ErrNo Add(KeyHash key_hash, DevicePos device_pos);
   inline ErrNo Remove(KeyHash key_hash);
+
+  bool Dump();
 
   virtual ~TableIndex();
  

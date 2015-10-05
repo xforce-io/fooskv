@@ -12,7 +12,9 @@ class TableIndexBucket {
   typedef MultiCowBtreeMap<KeyHash, DevicePos> Index;
   
  public:
-  TableIndexBucket(
+  TableIndexBucket();
+
+  bool Init(
       const Config& config, 
       NoTable no_table, 
       const std::string& name_table,
@@ -22,15 +24,14 @@ class TableIndexBucket {
   inline ErrNo Add(KeyHash key_hash, DevicePos device_pos);
   inline ErrNo Remove(KeyHash key_hash);
 
+  bool Dump();
+
   virtual ~TableIndexBucket();
  
  private:
-  bool DumpIndex_(); 
-
- private:
-  const Config& config_;
+  const Config* config_;
   NoTable no_table_;
-  const std::string& name_table_;
+  const std::string* name_table_;
   size_t no_bucket_; 
 
   Lock lock_;
