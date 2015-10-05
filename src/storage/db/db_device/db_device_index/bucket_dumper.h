@@ -20,7 +20,7 @@ class BucketDumper {
   typedef BucketDumper Self;
   typedef MultiCowBtreeMap<KeyHash, DevicePos> Index; 
   typedef std::vector<ModifyRec> ModifyRecs;
-
+ 
  public:
   BucketDumper();
 
@@ -44,10 +44,13 @@ class BucketDumper {
   bool RecoveryIndex_();
   bool RecoveryRecs_();
 
-  bool DumpIndex_(const Index& index);
-  bool DumpRecs_(size_t from, size_t to);
+  bool DumpStart_(const Index& index);
+  bool DumpEnd_();
 
-  bool Dump_();
+  bool DumpIndex_(const Index& index);
+  bool DumpRecs_(size_t from, size_t to, bool is_append=true);
+
+  bool RealDump_();
 
   std::string GetDumpIndexFilepath_() const;
   std::string GetDumpTmpIndexFilepath_() const;
@@ -63,20 +66,28 @@ class BucketDumper {
   size_t no_bucket_;
   bool* end_;
 
+  std::string dump_dir_;
   std::string index_filepath_;
-  std::string tmp_index_filepath_;
   std::string recs_filepath_;
+  std::string tmp_dump_dir_;
+  std::string tmp_index_filepath_;
   std::string tmp_recs_filepath_;
+  time_t dump_interval_sec_;
 
   Index* index_for_dump_;
 
   pthread_t tid_dumper_;
 
   ModifyRecs modify_recs_;
-  size_t last_index_modify_rec_;
+  size_t total_len_modify_recs_;
+
+  time_t last_dump_sec_;
+
   size_t cur_index_modify_rec_;
-  bool dump_end_;
-  bool is_dumping_;
+  atomic<bool> is_dumping_;
+  atomic<bool> dump_end_;
+  atomic<bool> deep_dump_;
+  atomic<bool> error_;
 };
 
 }}
