@@ -5,12 +5,17 @@ namespace xforce { namespace fooskv {
 DBDeviceIndex::DBDeviceIndex() :
   {}
 
-bool DBDeviceIndex::Init(const Config& config);
+bool DBDeviceIndex::Init(const Config& config) {
+  config_ = &config;
+  return true;
+}
 
 ErrNo DBDeviceIndex::CreateTable(
     NoTable no_table, 
     const std::string& name_table, 
     size_t num_buckets) {
+  TableIndex* table_index = new TableIndex;
+  bool ret = table_index->Init();
   table_indexes_.insert(std::make_pair(
       no_table, 
       new TableIndex(config, no_table, name_table, num_buckets)));

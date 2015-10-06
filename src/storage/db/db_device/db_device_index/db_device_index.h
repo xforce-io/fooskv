@@ -21,9 +21,12 @@ class DBDeviceIndex {
   virtual ~DBDeviceIndex();
  
  private: 
+  bool Recover_();
   inline ErrNo Modify_(bool is_add, NoTable no_table, KeyHash key_hash, DevicePos device_pos);
 
  private:
+  const Config* config_;
+
   TableIndexes table_indexes_; 
 
   //cache
