@@ -24,8 +24,21 @@ typedef int Index;
 typedef int Offset;
 
 struct DevicePos {
+ public:
   Index index;
   Offset offset;
+
+ public:
+  inline bool Serialize(FILE* fp) const;
+  inline bool Deserialize(FILE* fp);
 };
+
+bool DevicePos::Serialize(FILE* fp) const {
+  return 0 != fprintf(fp, "%d\t%d", index, offset);
+}
+
+bool DevicePos::Deserialize(FILE* fp) {
+  return 0 != fscanf(fp, "%d\n%d", &index, &offset);
+}
 
 }}

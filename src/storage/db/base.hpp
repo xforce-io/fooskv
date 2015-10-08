@@ -5,13 +5,13 @@
 namespace xforce { namespace fooskv {
 
 template <typename DBIndex>
-class DBBase {
+class Base {
  private:
-  typedef DBBase<DBIndex> Self;
+  typedef Base<DBIndex> Self;
   typedef MPSCFixedPipe<DBCmd*> Mailbox;
 
  public:
-  DBBase();
+  Base();
 
   bool Init(
       const Config& config,
@@ -19,7 +19,7 @@ class DBBase {
 
   void SendWriteCmd(DBCmd& db_cmd);
 
-  virtual ~DBBase();
+  virtual ~Base();
   
  private: 
   bool StartWriteHandler_();
@@ -47,14 +47,14 @@ class DBBase {
 namespace xforce { namespace fooskv {
 
 template <typename DBIndex>
-DBBase<DBIndex>::DBBase() :
+Base<DBIndex>::Base() :
   mailbox_(NULL),
   db_index_(NULL),
   db_device_(NULL),
   tid_writer_handler_(0) {}
 
 template <typename DBIndex>
-bool DBBase<DBIndex>::Init(
+bool Base<DBIndex>::Init(
     const Config& config,
     bool* end) {
   end_ = end;
@@ -79,7 +79,7 @@ bool DBBase<DBIndex>::Init(
 }
 
 template <typename DBIndex>
-void DBBase<DBIndex>::SendWriteCmd(DBCmd& db_cmd) {
+void Base<DBIndex>::SendWriteCmd(DBCmd& db_cmd) {
   db_cmd.endOfWriteCmd = false;
 
   if (mailbox_->SendMsg(&db_cmd)) {
@@ -104,7 +104,7 @@ void DBBase<DBIndex>::SendWriteCmd(DBCmd& db_cmd) {
 }
 
 template <typename DBIndex>
-DBBase<DBIndex>::~DBBase() {
+Base<DBIndex>::~Base() {
   JoinWriteHandler_();
   XFC_DELETE(db_device_)
   XFC_DELETE(db_index_)
@@ -112,12 +112,12 @@ DBBase<DBIndex>::~DBBase() {
 }
 
 template <typename DBIndex>
-bool DBBase<DBIndex>::StartWriteHandler_() {
+bool Base<DBIndex>::StartWriteHandler_() {
   return 0 == pthread_create(&tid_writer_handler_, NULL, WriteHandler_, RCAST<void*>(this));
 }
 
 template <typename DBIndex>
-void DBBase<DBIndex>::JoinWriteHandler_() {
+void Base<DBIndex>::JoinWriteHandler_() {
   if (0 != tid_writer_handler_) {
     pthread_join(tid_writer_handler_, NULL);
     tid_writer_handler_ = 0;
@@ -125,7 +125,7 @@ void DBBase<DBIndex>::JoinWriteHandler_() {
 }
 
 template <typename DBIndex>
-bool DBBase<DBIndex>::HandleWrites_() {
+bool Base<DBIndex>::HandleWrites_() {
   for (size_t i=0; i<100; ++i) {
     Mailbox::Msg* msg = mailbox_->ReceiveMsg();
     if (NULL==msg) {
@@ -149,7 +149,7 @@ bool DBBase<DBIndex>::HandleWrites_() {
 }
 
 template <typename DBIndex>
-ErrNo DBBase<DBIndex>::ModifyKVs_(const CmdModify& cmd_modify, LogicTime logic_time) {
+ErrNo Base<DBIndex>::ModifyKVs_(const CmdModify& cmd_modify, LogicTime logic_time) {
   NoTable no_table = cmd_modify.req.no_table;
   const KVBatch& kv_batch = *(cmd_modify.req.kv_batch);
   ErrNo* errno = cmd_modify.resp.errno;
@@ -186,7 +186,7 @@ ErrNo DBBase<DBIndex>::ModifyKVs_(const CmdModify& cmd_modify, LogicTime logic_t
 }
 
 template <typename DBIndex>
-ErrNo DBBase<DBIndex>::AddKV_(NoTable no_table, const KV& kv, LogicTime logic_time) {
+ErrNo Base<DBIndex>::AddKV_(NoTable no_table, const KV& kv, LogicTime logic_time) {
   ErrNo errno = db_device_->Add(no_table, kv, logic_time);
   if (ErrNo::kOK != errno) {
     return errno;
@@ -195,7 +195,7 @@ ErrNo DBBase<DBIndex>::AddKV_(NoTable no_table, const KV& kv, LogicTime logic_ti
 }
 
 template <typename DBIndex>
-ErrNo DBBase<DBIndex>::RemoveKV_(NoTable no_table, const KV& kv, LogicTime logic_time) {
+ErrNo Base<DBIndex>::RemoveKV_(NoTable no_table, const KV& kv, LogicTime logic_time) {
   ErrNo errno = db_index_->Remove(no_table, kv_batch, logic_time);
   if (ErrNo::kOK != errno) {
     return errno;;
@@ -204,7 +204,7 @@ ErrNo DBBase<DBIndex>::RemoveKV_(NoTable no_table, const KV& kv, LogicTime logic
 }
 
 template <typename DBIndex>
-void* DBBase<DBIndex>::WriteHandler_(void* args) {
+void* Base<DBIndex>::WriteHandler_(void* args) {
   Self* self = RCAST<Self*>(args);
   while (!*(self->end_)) {
     bool ret = self->HandleWrites_();

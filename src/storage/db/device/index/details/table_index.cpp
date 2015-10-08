@@ -11,7 +11,8 @@ bool TableIndex::Init(
     NoTable no_table, 
     const std::string& name_table,
     size_t num_buckets,
-    bool* end) {
+    bool* end,
+    bool newly_created) {
   config_ = &config;
   no_table_ = no_table;
   name_table_ = &name_table;
@@ -20,22 +21,29 @@ bool TableIndex::Init(
 
   table_index_buckets_ = new TableIndexBucket [num_buckets];
   for (size_t i=0; i<num_buckets_; ++i) {
-    table_index_buckets_[i] = NULL;
+    table_index_buckets_[i] = new TableIndexBucket(*config_, no_table_, name_table_, i, end);
   }
-  int ret = pthread_create(&tid_recovery_, NULL, );
+
+  if (newly_created) {
+    for (size_t i=0; i<num_buckets_; ++i) {
+      bool ret = table_index_buckets_[i]->Recover();
+      XFC_FAIL_HANDLE(!ret)
+    }
+  } else {
+    int ret = pthread_create(&tid_recovery_, NULL, Recovery_, this);
+    XFC_FAIL_HANDLE(0!=ret)
+  }
   return true;
 
   ERROR_HANDLE:
   return false;
 }
 
-bool TableIndex::Dump() {
+const DevicePos* TableIndex::GetReplayPos() const {
+  static const DevicePos kDefaultPos = (struct DevicePos){INT_MAX, INT_MAX};
   for (size_t i=0; i<num_buckets_; ++i) {
-    if (NULL != table_index_buckets_[i] && !table_index_buckets_[i]->Dump()) {
-      return false;
-    }
+    //TODO : here
   }
-  return true;
 }
 
 TableIndex::~TableIndex() {
@@ -53,13 +61,15 @@ void TableIndex::ActivateBucket_(size_t i) {
   lock_.Lock();
   recovery_queue_.push(i);
   lock_.Unlock();
+
+  WAIT_UNTIL_TRUE(table_index_buckets_[i]->HasRecover(), 10)
 }
 
 int TableIndex::RecoverBucket_() {
   lock_.Lock();
   if (0 == recovery_queue_.size()) {
     for (size_t i=0; i<num_buckets_; ++i) {
-      if (NULL == table_index_buckets_[i]) {
+      if (!table_index_buckets_[i]->HasRecover()) {
         recovery_queue_.push(i);
         break;
       }

@@ -4,20 +4,20 @@
 
 namespace xforce { namespace fooskv {
 
-class DBDevice {
+class Device {
  public:
-  DBDevice();
+  Device();
 
   bool Init(const Config& config);
 
   ErrNo Add(NoTable no_table, const KV& kv, LogicTime logic_time);
   ErrNo Remove(NoTable no_table, const KVB& kv, LogicTime logic_time);
 
-  virtual ~DBDevice();
+  virtual ~Device();
  
  private: 
-  DBDeviceDir* db_device_dir_;
-  DBDeviceWriteHandle* write_handle_;
+  DeviceDir* db_device_dir_;
+  DeviceWriteHandle* write_handle_;
 };
 
 }}

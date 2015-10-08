@@ -29,20 +29,23 @@ class BucketDumper {
       NoTable no_table, 
       const std::string& name_table,
       size_t no_bucket,
-      bool* end);
+      bool* end,
+      bool newly_created);
 
   bool Recovery(Index& index);
+  const DevicePos* GetReplayPos();
 
-  inline void Add(KeyHash key_hash, DevicePos device_pos);
+  inline void Add(KeyHash key_hash, DevicePos device_pos, const Index& index);
   inline void Remove(KeyHash key_hash);
 
-  bool Dump(const Index& index);
 
   virtual ~BucketDumper();
  
  private:
   bool RecoveryIndex_();
   bool RecoveryRecs_();
+
+  bool Dump_(DevicePos device_pos, const Index& index);
 
   bool DumpStart_(const Index& index);
   bool DumpEnd_();
@@ -65,6 +68,7 @@ class BucketDumper {
   const std::string* name_table_;
   size_t no_bucket_;
   bool* end_;
+  bool newly_created_;
 
   std::string dump_dir_;
   std::string index_filepath_;
@@ -74,6 +78,7 @@ class BucketDumper {
   std::string tmp_recs_filepath_;
   time_t dump_interval_sec_;
 
+  LogicMark<DevicePos> dump_mark_;
   Index* index_for_dump_;
 
   pthread_t tid_dumper_;
@@ -102,7 +107,11 @@ bool ModifyRec::Write(FILE* fp) {
   return StorageIOHelper::Write(this, sizeof(ModifyRec), 1, fp);
 }
 
-void TableIndexBucket::Add(KeyHash key_hash, DevicePos device_pos) {
+void BucketDumper::Add(KeyHash key_hash, DevicePos device_pos, const Index& index) {
+  if (!Dump_(device_pos, Index)) {
+    FATAL("fail_dump_for_table[" << name_table_ << "]");
+  }
+
   ModifyRec modify_rec;
   modify_rec.isAdd = true;
   modify_rec.key_hash = key_hash;
@@ -110,7 +119,7 @@ void TableIndexBucket::Add(KeyHash key_hash, DevicePos device_pos) {
   modify_recs_.push_back(modify_rec);
 }
 
-void TableIndexBucket::Remove(KeyHash key_hash) {
+void BucketDumper::Remove(KeyHash key_hash) {
   ModifyRec modify_rec;
   modify_rec.isAdd = false;
   modify_rec.key_hash = key_hash;

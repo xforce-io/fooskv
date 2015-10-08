@@ -11,14 +11,17 @@ bool BucketDumper::Init(
     NoTable no_table,
     const std::string& name_table,
     size_t no_bucket,
-    bool* end) :
+    bool* end,
+    bool newly_created) :
   config_(config),
   no_table_(no_table),
   name_table_(name_table),
   no_bucket_(no_bucket),
   end_(end),
+  newly_created_(newly_created),
   total_len_modify_recs_(0),
   last_dump_sec_(0) {
+  bool ret;
 
   std::stringstream ss;
   ss << config["dumpDir"].AsStr()
@@ -55,6 +58,13 @@ bool BucketDumper::Init(
 
   dump_interval_sec_ = config["dumpIntervalSec"].AsStr();
 
+  ret = dump_mark_.Init(config["dumpDir"].AsStr(), config["dumpMarkFilename"].AsStr());
+  XFC_FAIL_HANDLE_WARN(!ret, "fail_init_dump_mark table[" 
+      << *name_table_
+      << "] no_bucket["
+      << no_bucket_
+      << "]")
+
   XFC_NEW(index_for_dump_, Index)
   XFC_STOP(0 != pthread_create(&tid_dumper_, NULL, Dumper_, this))
   return true;
@@ -64,14 +74,25 @@ bool BucketDumper::Init(
 }
 
 bool BucketDumper::Recovery(Index& index) {
-  return RecoveryIndex_(index) && RecoveryRecs_();
+  if (!newly_created_) {
+    return RecoveryIndex_(index) && RecoveryRecs_();
+  } else {
+    std::stringstream ss;
+    ss << "mkdir -p " << dump_dir_;
+    return 0 == system(ss.str().c_str());
+  }
 }
 
-bool BucketDumper::Dump(const Index& index) {
+const DevicePos* BucketDumper::GetReplayPos() {  
+  return dump_mark_.RestoreAndGet();
+}
+
+bool BucketDumper::Dump_(DevicePos device_pos, const Index& index) {
   time_t cur_sec = Time::GetCurrentSec(true);
   if (!is_dumping_.load()) {
     if (cur_sec-last_dump_sec_ > dump_interval_sec_) {
       *index_for_dump_ = index;
+      dump_mark_.Set(device_pos);
       return DumpStart_(index);
     }
   } else {
@@ -177,6 +198,7 @@ void BucketDumper::DumpEnd_() {
       modify_recs_[i-cur_index_modify_rec_] = modify_recs_[i];
     }
     modify_recs_.resize(modify_recs_.size() - cur_index_modify_rec_);
+    dump_mark_.Save();
   }
 
   deep_dump_.store(false);

@@ -1,9 +1,9 @@
 #include "public.h"
-#include "db_device_dir.h"
+#include "device_dir.h"
 
 namespace zmt { namespace foosdb {
 
-class DBDeviceWriteHandle {
+class DeviceWriteHandle {
  public:
   struct FlushUnit {
     char* addr;
@@ -15,14 +15,14 @@ class DBDeviceWriteHandle {
   static char* const kInvalidAddr;
 
  public:
-  DBDeviceWriteHandle(DBDeviceDir& db_device_dir, bool flush_sync);
+  DeviceWriteHandle(DeviceDir& db_device_dir, bool flush_sync);
 
   /*
    * @parameters:
    *    index: index of the db file, if -1, seek to the last file
    *    offset: offset of the pointer, if -1, seek to the end
    */
-  bool Reset(DBDeviceDirIterator dir_iter, Offset offset=0);
+  bool Reset(DeviceDirIterator dir_iter, Offset offset=0);
   inline bool Reset(Index index, Offset offset=0);
   bool Reset(const std::string& filepath, Offset offset=0);
   bool SeekToTheEnd();
@@ -55,7 +55,7 @@ class DBDeviceWriteHandle {
   ssize_t GetRoomLeft() const { return db_device_dir_->GetMaxSizeDeviceBlock() - GetOffset(); }
   bool IsValid() const { return db_device_dir_->End() != dir_iter_; }
   void Flush(bool at_close=false);
-  virtual ~DBDeviceWriteHandle();
+  virtual ~DeviceWriteHandle();
 
  private:
   ssize_t EnsureFilesize_(int fd);
@@ -63,11 +63,11 @@ class DBDeviceWriteHandle {
  
  private:
   //const
-  DBDeviceDir* db_device_dir_;
+  DeviceDir* db_device_dir_;
   int sync_flag_;
   ///
 
-  DBDeviceDirIterator dir_iter_;
+  DeviceDirIterator dir_iter_;
   std::string filepath_;
   int fd_;
 
@@ -78,7 +78,7 @@ class DBDeviceWriteHandle {
   pthread_rwlock_t rwlock_;
 };
 
-class DBDeviceReadHandle {
+class DeviceReadHandle {
  private:
   struct BackupItem {
     int fd;
@@ -91,8 +91,8 @@ class DBDeviceReadHandle {
   static const size_t kBackupItemExpireTimeInSec=60; 
   
  public:
-  DBDeviceReadHandle(const DBDeviceDir& db_device_dir);
-  bool Reset(DBDeviceDirIterator dir_iter, Offset offset=0);
+  DeviceReadHandle(const DeviceDir& db_device_dir);
+  bool Reset(DeviceDirIterator dir_iter, Offset offset=0);
   inline bool Reset(Index index, Offset offset=0);
 
   /*
@@ -103,79 +103,79 @@ class DBDeviceReadHandle {
    */
   inline int ReadLog(DeviceLog& device_log);
 
-  const DBDeviceDirIterator& GetDirIter() const { return dir_iter_; }
+  const DeviceDirIterator& GetDirIter() const { return dir_iter_; }
 
   int GetIndex() const { return dir_iter_.GetIndex(); }
   Offset GetOffset() const { return lseek(fd_, 0, SEEK_CUR); }
   bool IsValid() const { return db_device_dir_->End() != dir_iter_; }
-  virtual ~DBDeviceReadHandle();
+  virtual ~DeviceReadHandle();
 
  private:
   void ClearExpiredBackupItems_(Index index_except);
 
  private:
   //const
-  const DBDeviceDir* db_device_dir_;
+  const DeviceDir* db_device_dir_;
   ///
 
-  DBDeviceDirIterator dir_iter_;
+  DeviceDirIterator dir_iter_;
   int fd_;
 
   Backups backups_;
 };
 
-bool DBDeviceWriteHandle::Reset(Index index, Offset offset) {
+bool DeviceWriteHandle::Reset(Index index, Offset offset) {
   return index>=0 ?
     ( db_device_dir_->NewFile(index) ? 
-        Reset(DBDeviceDirIterator(*db_device_dir_, index), offset) : 
+        Reset(DeviceDirIterator(*db_device_dir_, index), offset) : 
         false ) :
     ( -1 != db_device_dir_->GetLastIndex() ? 
         Reset(db_device_dir_->Last(), offset) : 
         ( db_device_dir_->NewFile() ? 
-            Reset(DBDeviceDirIterator(*db_device_dir_, 0), offset) :
+            Reset(DeviceDirIterator(*db_device_dir_, 0), offset) :
             false ) );
 }
 
-bool DBDeviceWriteHandle::HasSpaceForNewLog(
+bool DeviceWriteHandle::HasSpaceForNewLog(
     const FlushMsg& msg) {
   return GetRoomLeft() >= SCAST<ssize_t>(DeviceLog::GetContentOffset() + 
       msg.msg.Size() + sizeof(DeviceLog().GetChecksum()));
 }
 
-bool DBDeviceWriteHandle::HasSpaceForNewLog(
+bool DeviceWriteHandle::HasSpaceForNewLog(
     const DeviceLog& device_log) {
   return GetRoomLeft() >= SCAST<ssize_t>(DeviceLog::GetContentOffset() + 
       device_log.GetContentLen() + sizeof(DeviceLog().GetChecksum()));
 }
 
-void DBDeviceWriteHandle::PassLog() {
+void DeviceWriteHandle::PassLog() {
   cur_log_ = RCAST<DeviceLog*>(
       RCAST<char*>(cur_log_) + cur_log_->GetSize());
 }
 
-bool DBDeviceWriteHandle::MapReadLock() {
+bool DeviceWriteHandle::MapReadLock() {
   return 0 == pthread_rwlock_rdlock(&rwlock_);
 }
 
-void DBDeviceWriteHandle::MapUnlock() {
+void DeviceWriteHandle::MapUnlock() {
   pthread_rwlock_unlock(&rwlock_);
 }
 
-Offset DBDeviceWriteHandle::GetOffset() const {
+Offset DeviceWriteHandle::GetOffset() const {
   return RCAST<char*>(cur_log_) - start_addr_;
 }
 
-DeviceLog* DBDeviceWriteHandle::GetLog(Offset offset) { 
+DeviceLog* DeviceWriteHandle::GetLog(Offset offset) { 
   return RCAST<DeviceLog*>(start_addr_+offset); 
 }
 
-bool DBDeviceReadHandle::Reset(Index index, Offset offset) {
+bool DeviceReadHandle::Reset(Index index, Offset offset) {
   return index>=0 ? 
-    Reset(DBDeviceDirIterator(*db_device_dir_, index), offset) :
+    Reset(DeviceDirIterator(*db_device_dir_, index), offset) :
     Reset(db_device_dir_->Last(), offset);
 }
 
-int DBDeviceReadHandle::ReadLog(DeviceLog& device_log) {
+int DeviceReadHandle::ReadLog(DeviceLog& device_log) {
   int ret = device_log.ReadFrom(fd_);
   if (ret<0) {
     FATAL("fail_read_device_log ret[" 

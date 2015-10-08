@@ -19,10 +19,10 @@ class TableIndex {
       bool* end,
       bool newly_created); 
 
+  const DevicePos* GetReplayPos() const;
+
   inline ErrNo Add(KeyHash key_hash, DevicePos device_pos);
   inline ErrNo Remove(KeyHash key_hash);
-
-  bool Dump();
 
   virtual ~TableIndex();
  
@@ -59,11 +59,19 @@ class TableIndex {
 namespace xforce { namespace fooskv {
 
 ErrNo TableIndex::Add(KeyHash key_hash, DevicePos device_pos) {
-  table_index_buckets_[GetBucket_(key_hash)]->Add(key_hash, device_pos);
+  size_t bucket = GetBucket_(key_hash);
+  if (!table_index_buckets_[bucket]->IsInit()) {
+    ActivateBucket_(bucket);
+  }
+  table_index_buckets_[bucket]->Add(key_hash, device_pos);
 }
 
 ErrNo TableIndex::Remove(KeyHash key_hash) {
-  table_index_buckets_[GetBucket_(key_hash)]->Remove(key_hash);
+  size_t bucket = GetBucket_(key_hash);
+  if (!table_index_buckets_[bucket]->IsInit()) {
+    ActivateBucket_(bucket);
+  }
+  table_index_buckets_[bucket]->Remove(key_hash);
 }
 
 size_t TableIndex::GetBucket_(KeyHash key_hash) {

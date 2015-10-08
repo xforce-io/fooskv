@@ -4,8 +4,8 @@
 
 namespace xforce { namespace fooskv {
 
-struct DBCmd {
-  DBCmdHeader();
+struct Cmd {
+  CmdHeader();
 
   Cmd no_cmd;
   LogicTime start_logic_time;

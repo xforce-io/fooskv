@@ -1,27 +1,31 @@
-#include "../db_device_index.h"
+#include "../index.h"
 
 namespace xforce { namespace fooskv {
 
-DBDeviceIndex::DBDeviceIndex() :
-  {}
+Index::Index() :
+  last_dump_sec_(0) {}
 
-bool DBDeviceIndex::Init(const Config& config) {
+bool Index::Init(const Config& config, bool* end) {
   config_ = &config;
+  end_ = end;
   return true;
+
+  ERROR_HANDLE:
+  return false;
 }
 
-ErrNo DBDeviceIndex::CreateTable(
+ErrNo Index::CreateTable(
     NoTable no_table, 
     const std::string& name_table, 
     size_t num_buckets) {
   TableIndex* table_index = new TableIndex;
-  bool ret = table_index->Init();
+  bool ret = table_index->Init(*config_, no_table, name_table, num_buckets, end_, true);
   table_indexes_.insert(std::make_pair(
       no_table, 
       new TableIndex(config, no_table, name_table, num_buckets)));
 }
 
-ErrNo DBDeviceIndex::DropTable(NoTable no_table) {
+ErrNo Index::DropTable(NoTable no_table) {
   TableIndex::iterator iter = table_indexes_.find(no_table);
   if (table_indexes_.end() == iter) {
     return kNotExist;
@@ -32,7 +36,7 @@ ErrNo DBDeviceIndex::DropTable(NoTable no_table) {
   return kOK;
 }
 
-DBDeviceIndex::~DBDeviceIndex() {
+Index::~Index() {
 }
 
 }}
