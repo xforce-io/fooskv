@@ -52,8 +52,8 @@ class DeviceWriteHandle {
   inline Offset GetOffset() const;
   DeviceLog* GetCurrentLog() { return cur_log_; }
   inline DeviceLog* GetLog(Offset offset);
-  ssize_t GetRoomLeft() const { return db_device_dir_->GetMaxSizeDeviceBlock() - GetOffset(); }
-  bool IsValid() const { return db_device_dir_->End() != dir_iter_; }
+  ssize_t GetRoomLeft() const { return device_dir_->GetMaxSizeDeviceBlock() - GetOffset(); }
+  bool IsValid() const { return device_dir_->End() != dir_iter_; }
   void Flush(bool at_close=false);
   virtual ~DeviceWriteHandle();
 
@@ -63,7 +63,7 @@ class DeviceWriteHandle {
  
  private:
   //const
-  DeviceDir* db_device_dir_;
+  DeviceDir* device_dir_;
   int sync_flag_;
   ///
 
@@ -91,7 +91,7 @@ class DeviceReadHandle {
   static const size_t kBackupItemExpireTimeInSec=60; 
   
  public:
-  DeviceReadHandle(const DeviceDir& db_device_dir);
+  DeviceReadHandle(const DeviceDir& device_dir);
   bool Reset(DeviceDirIterator dir_iter, Offset offset=0);
   inline bool Reset(Index index, Offset offset=0);
 
@@ -107,7 +107,7 @@ class DeviceReadHandle {
 
   int GetIndex() const { return dir_iter_.GetIndex(); }
   Offset GetOffset() const { return lseek(fd_, 0, SEEK_CUR); }
-  bool IsValid() const { return db_device_dir_->End() != dir_iter_; }
+  bool IsValid() const { return device_dir_->End() != dir_iter_; }
   virtual ~DeviceReadHandle();
 
  private:
@@ -115,7 +115,7 @@ class DeviceReadHandle {
 
  private:
   //const
-  const DeviceDir* db_device_dir_;
+  const DeviceDir* device_dir_;
   ///
 
   DeviceDirIterator dir_iter_;
@@ -126,13 +126,13 @@ class DeviceReadHandle {
 
 bool DeviceWriteHandle::Reset(Index index, Offset offset) {
   return index>=0 ?
-    ( db_device_dir_->NewFile(index) ? 
-        Reset(DeviceDirIterator(*db_device_dir_, index), offset) : 
+    ( device_dir_->NewFile(index) ? 
+        Reset(DeviceDirIterator(*device_dir_, index), offset) : 
         false ) :
-    ( -1 != db_device_dir_->GetLastIndex() ? 
-        Reset(db_device_dir_->Last(), offset) : 
-        ( db_device_dir_->NewFile() ? 
-            Reset(DeviceDirIterator(*db_device_dir_, 0), offset) :
+    ( -1 != device_dir_->GetLastIndex() ? 
+        Reset(device_dir_->Last(), offset) : 
+        ( device_dir_->NewFile() ? 
+            Reset(DeviceDirIterator(*device_dir_, 0), offset) :
             false ) );
 }
 
@@ -171,8 +171,8 @@ DeviceLog* DeviceWriteHandle::GetLog(Offset offset) {
 
 bool DeviceReadHandle::Reset(Index index, Offset offset) {
   return index>=0 ? 
-    Reset(DeviceDirIterator(*db_device_dir_, index), offset) :
-    Reset(db_device_dir_->Last(), offset);
+    Reset(DeviceDirIterator(*device_dir_, index), offset) :
+    Reset(device_dir_->Last(), offset);
 }
 
 int DeviceReadHandle::ReadLog(DeviceLog& device_log) {

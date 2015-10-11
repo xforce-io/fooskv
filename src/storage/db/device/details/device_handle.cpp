@@ -8,11 +8,11 @@ namespace zmt { namespace foosdb {
 char* const DBDeviceWriteHandle::kInvalidAddr = RCAST<char* const>(-1);
 
 DBDeviceWriteHandle::DBDeviceWriteHandle(
-    DBDeviceDir& db_device_dir,
+    DBDeviceDir& device_dir,
     bool flush_sync) :
-  db_device_dir_(&db_device_dir),
+  device_dir_(&device_dir),
   sync_flag_(flush_sync ? MS_SYNC : MS_ASYNC),
-  dir_iter_(db_device_dir),
+  dir_iter_(device_dir),
   fd_(-1),
   start_addr_(kInvalidAddr),
   tobe_flushed_(kInvalidAddr),
@@ -27,7 +27,7 @@ bool DBDeviceWriteHandle::Reset(DBDeviceDirIterator dir_iter, Offset offset) {
   char* new_addr;
   struct stat state_file;
 
-  MEGA_FAIL_HANDLE_WARN(offset > SCAST<Offset>(db_device_dir_->GetMaxSizeDeviceBlock()),
+  MEGA_FAIL_HANDLE_WARN(offset > SCAST<Offset>(device_dir_->GetMaxSizeDeviceBlock()),
       "offset_too_big_for_write_handle[" << offset << "]");
 
   if (dir_iter!=dir_iter_) {
@@ -40,7 +40,7 @@ bool DBDeviceWriteHandle::Reset(DBDeviceDirIterator dir_iter, Offset offset) {
     MEGA_FAIL_HANDLE(filesize<0)
 
     new_addr = RCAST<char*>(
-      mmap(0, db_device_dir_->GetMaxSizeDeviceBlock(), PROT_READ|PROT_WRITE, 
+      mmap(0, device_dir_->GetMaxSizeDeviceBlock(), PROT_READ|PROT_WRITE, 
           MAP_SHARED, new_fd, 0));
     MEGA_FAIL_HANDLE_WARN(kInvalidAddr==new_addr,
         "fail_mmap_new_dbfile[" << new_filepath << "]")
@@ -83,7 +83,7 @@ bool DBDeviceWriteHandle::Reset(const std::string& filepath, Offset offset) {
   char* new_addr;
   struct stat state_file;
 
-  MEGA_FAIL_HANDLE_WARN(offset > SCAST<Offset>(db_device_dir_->GetMaxSizeDeviceBlock()),
+  MEGA_FAIL_HANDLE_WARN(offset > SCAST<Offset>(device_dir_->GetMaxSizeDeviceBlock()),
       "offset_too_big_for_write_handle[" << offset << "]");
 
   if (filepath!=filepath_) {
@@ -95,7 +95,7 @@ bool DBDeviceWriteHandle::Reset(const std::string& filepath, Offset offset) {
     MEGA_FAIL_HANDLE(filesize<0)
 
     new_addr = RCAST<char*>(
-      mmap(0, db_device_dir_->GetMaxSizeDeviceBlock(), PROT_READ|PROT_WRITE, 
+      mmap(0, device_dir_->GetMaxSizeDeviceBlock(), PROT_READ|PROT_WRITE, 
           MAP_SHARED, new_fd, 0));
     MEGA_FAIL_HANDLE_WARN(kInvalidAddr==new_addr,
         "fail_mmap_new_dbfile[" << filepath << "]")
@@ -107,7 +107,7 @@ bool DBDeviceWriteHandle::Reset(const std::string& filepath, Offset offset) {
     tobe_flushed_=new_addr;
     cur_log_ = RCAST<DeviceLog*>(start_addr_);
     if (0==filesize) cur_log_->MarkLastLog();
-    dir_iter_ = db_device_dir_->End();
+    dir_iter_ = device_dir_->End();
   } else {
     MEGA_FAIL_HANDLE_WARN(
         0 != stat(filepath_.c_str(), &state_file),
@@ -140,7 +140,7 @@ bool DBDeviceWriteHandle::SeekToTheEnd() {
   }
 
   if (ret<0) {
-    WARN("fail_seek_to_end dir[" << db_device_dir_ << "] iter[" << dir_iter_ << "]");
+    WARN("fail_seek_to_end dir[" << device_dir_ << "] iter[" << dir_iter_ << "]");
     return false;
   }
   return true;
@@ -193,11 +193,11 @@ ssize_t DBDeviceWriteHandle::EnsureFilesize_(int fd) {
   MEGA_FAIL_HANDLE_WARN(0!=ret,
       "fail_fstat error[" << strerror(errno) << "]")
 
-  if (st.st_size >= SCAST<ssize_t>(db_device_dir_->GetMaxSizeDeviceBlock())) {
+  if (st.st_size >= SCAST<ssize_t>(device_dir_->GetMaxSizeDeviceBlock())) {
     return true;
   }
 
-  ret = lseek(fd, db_device_dir_->GetMaxSizeDeviceBlock(), SEEK_SET);
+  ret = lseek(fd, device_dir_->GetMaxSizeDeviceBlock(), SEEK_SET);
   MEGA_FAIL_HANDLE_WARN(-1==ret, 
       "fail_lseek error[" << strerror(errno) << "]")
 
@@ -211,11 +211,11 @@ ssize_t DBDeviceWriteHandle::EnsureFilesize_(int fd) {
 }
 
 void DBDeviceWriteHandle::Close_() {
-  dir_iter_ = db_device_dir_->End();
+  dir_iter_ = device_dir_->End();
   Flush(true);
   if (kInvalidAddr!=start_addr_) {
     pthread_rwlock_wrlock(&rwlock_);
-    munmap(start_addr_, db_device_dir_->GetMaxSizeDeviceBlock());
+    munmap(start_addr_, device_dir_->GetMaxSizeDeviceBlock());
     start_addr_=kInvalidAddr;
     pthread_rwlock_unlock(&rwlock_);
   }
@@ -239,7 +239,7 @@ void DBDeviceWriteHandle::Flush(bool at_close) {
     size_to_flush = num_pages*kPageSize;
   } else {
     size_to_flush = std::min(
-        db_device_dir_->GetMaxSizeDeviceBlock() - (tobe_flushed_-start_addr_),
+        device_dir_->GetMaxSizeDeviceBlock() - (tobe_flushed_-start_addr_),
         size_not_flushed + sizeof(DeviceLog::checksum_));
   }
 
@@ -264,12 +264,16 @@ void DBDeviceWriteHandle::Flush(bool at_close) {
 }
 
 DBDeviceReadHandle::DBDeviceReadHandle(
-    const DBDeviceDir& db_device_dir) :
-  db_device_dir_(&db_device_dir),
-  dir_iter_(db_device_dir),
+    const DBDeviceDir& device_dir) :
+  device_dir_(&device_dir),
+  dir_iter_(device_dir),
   fd_(-1) {}
 
 bool DBDeviceReadHandle::Reset(DBDeviceDirIterator dir_iter, Offset offset) {
+  if (&dir_iter.GetDeviceDir() != device_dir_) {
+    return false;
+  }
+
   int ret;
   struct stat state_file;
 
@@ -288,12 +292,12 @@ bool DBDeviceReadHandle::Reset(DBDeviceDirIterator dir_iter, Offset offset) {
 
     ClearExpiredBackupItems_(dir_iter.GetIndex());
   } else {
-    dir_iter_ = DBDeviceDirIterator(*db_device_dir_, iter->first);
+    dir_iter_ = DBDeviceDirIterator(*device_dir_, iter->first);
 
     if (0 != stat((*dir_iter_).c_str(), &state_file)) {
       close(iter->second.fd);
       backups_.erase(iter->first);
-      dir_iter_ = db_device_dir_->End();
+      dir_iter_ = device_dir_->End();
       fd_=-1;
       MEGA_FAIL_HANDLE_FATAL(true, "file[" << *dir_iter_ << "] no_longer_exists")
     }

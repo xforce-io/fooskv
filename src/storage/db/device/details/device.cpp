@@ -78,6 +78,22 @@ bool Device::InitIndex_() {
 }
 
 bool Device::ReplayLogs_() {
+  const DevicePos& device_pos = index_->GetReplayPos();
+  if (-1 == device_pos.index) {
+    return true;
+  }
+
+  DeviceDirIterator* iter = new DeviceDirIterator(*device_dir_, device_pos.index);
+  do {
+    int ret = read_handle_->Reset(*iter, device_pos.offset);
+    XFC_FAIL_HANDLE_WARN(true!=ret, "fail_reset_read_handle_when_replay_logs")
+
+    ret = read_handle_->ReadLog();
+  } while (iter->GetIndex() != -1);
+  return true;
+
+  ERROR_HANDLE:
+  return false;
 }
 
 }}
