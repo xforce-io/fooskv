@@ -15,7 +15,7 @@ class DeviceWriteHandle {
   static char* const kInvalidAddr;
 
  public:
-  DeviceWriteHandle(DeviceDir& db_device_dir, bool flush_sync);
+  DeviceWriteHandle(DeviceDir& device_dir, bool flush_sync);
 
   /*
    * @parameters:
