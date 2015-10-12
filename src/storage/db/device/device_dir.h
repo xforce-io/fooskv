@@ -3,7 +3,7 @@
 #include "public.h"
 #include "device_log.h"
 
-namespace zmt { namespace foosdb {
+namespace zmt { namespace fooskv {
 
 class DeviceDirIterator;
 
@@ -81,6 +81,8 @@ class DeviceDirIterator {
   int GetIndex() const { return index_; }
   const DeviceDir& GetDeviceDir() const { return *device_dir_; }
   const std::string* GetDir() const { return device_dir_->GetDir(index_); }
+
+  const std::string Str() const;
 
  private:
   int MoveToSuitableIndex_(int left_bound, int right_bound, bool is_first /* or is last */);

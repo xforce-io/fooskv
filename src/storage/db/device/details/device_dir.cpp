@@ -170,6 +170,12 @@ std::string DeviceDirIterator::operator*() const {
   return device_dir_->GetPath(iter->second, index_);
 }
 
+const std::string DeviceDirIterator::Str() const {
+  std::stringstream ss;
+  ss << "DeviceDirIterator[" << *GetDir() << "]";
+  return ss.str();
+}
+
 int DeviceDirIterator::MoveToSuitableIndex_(int left_bound, int right_bound, bool is_first) {
   int index_ = is_first ? right_bound : left_bound;
 

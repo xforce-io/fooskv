@@ -10,17 +10,32 @@ class Device {
 
   bool Init(const Config& config, bool* end);
 
-  ErrNo Add(NoTable no_table, const KV& kv, LogicTime logic_time);
-  ErrNo Remove(NoTable no_table, const KVB& kv, LogicTime logic_time);
+  ErrNo CreateTable(NoTable no_table, const std::string& name_table);
+  ErrNo DropTable(NoTable, const std::string& name_table);
+
+  ErrNo Add(
+      NoTable no_table, 
+      const std::string& name_table, 
+      const KV& kv, 
+      LogicTime logic_time);
+
+  ErrNo Remove(
+      NoTable no_table, 
+      const std::string& name_table,
+      const KVB& kv, 
+      LogicTime logic_time);
 
   virtual ~Device();
  
  private:
-  DeviceDir* InitDeviceDir_();
-  DeviceReadHandle* InitDeviceReadHandle_(DeviceDir& device_dir);
-  Index* InitIndex_();
+  bool InitDeviceDir_();
+  bool InitDeviceReadHandle_(DeviceDir& device_dir);
+  bool InitIndex_();
+  bool InitDeviceWriteHandle_(DeviceDir& device_dir, DeviceDirIterator& iter);
+  
 
-  bool ReplayLogs_();  
+  DeviceDirIterator* ReplayLogs_();  
+  bool ReplayDeviceLog_(const DeviceLog& device_log);
  
  private:
   const Config* config_;
@@ -28,7 +43,10 @@ class Device {
 
   DeviceDir* device_dir_;
   DeviceReadHandle* read_handle_;
+  DeviceWriteHandle* write_handle_;
   Index* index_;
+
+  mutable DeviceLog* tmp_device_log_;
 };
 
 }}

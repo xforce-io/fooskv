@@ -2,6 +2,10 @@
 
 namespace xforce { namespace fooskv {
 
+DeviceLog* DeviceLog::Produce() {
+  return RCAST<Self*>(operator new (kMaxSize))
+}
+
 void DeviceLog::Assign(const FlushMsg& msg) {
   logic_time_ = msg.logic_time;
   cmd_ = msg.cmd;
@@ -34,6 +38,24 @@ int DeviceLog::ReadFrom(int fd) {
     return -5;
   }
   return 0;
+}
+
+const std::string DeviceLog::Str() const {
+  std::stringstream ss;
+  ss << "DeviceLog[cmd:" 
+      << cmd_.Str() 
+      << "|no_table:" 
+      << no_table_
+      << "|logic_time:"
+      << logic_time_
+      << "|key_hash_:"
+      << key_hash_
+      << "|len_all_:"
+      << len_all_
+      << "|len_key_:"
+      << len_key_
+      << "]";
+  return ss.str();
 }
 
 }}

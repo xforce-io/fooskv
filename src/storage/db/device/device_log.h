@@ -7,6 +7,9 @@ namespace xforce { namespace fooskv {
 class DeviceLog {
  public: 
   typedef DeviceLog Self;
+
+ public:
+  static const size_t kMaxSize = (1<<20); 
   
  public:
   /*
@@ -15,6 +18,8 @@ class DeviceLog {
   static const uint32_t kEndMagic = 0x9ED0A676;
    
  public:
+  Self* Produce();
+  
   inline DeviceLog& operator=(const Self& other);
 
   void AssignAddLog(NoTable no_table, const KV& kv, LogicTime logic_time);
@@ -44,6 +49,8 @@ class DeviceLog {
   inline size_t DeviceSpaceAquired() const;
 
   bool IsEnd() const { return checksum_ == kEndMagic; }
+
+  const std::string Str() const;
  
  private:
   inline void GenChecksum_();

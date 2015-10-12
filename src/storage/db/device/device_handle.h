@@ -23,8 +23,6 @@ class DeviceWriteHandle {
    *    offset: offset of the pointer, if -1, seek to the end
    */
   bool Reset(DeviceDirIterator dir_iter, Offset offset=0);
-  inline bool Reset(Index index, Offset offset=0);
-  bool Reset(const std::string& filepath, Offset offset=0);
   bool SeekToTheEnd();
 
   /*
@@ -108,6 +106,9 @@ class DeviceReadHandle {
   int GetIndex() const { return dir_iter_.GetIndex(); }
   Offset GetOffset() const { return lseek(fd_, 0, SEEK_CUR); }
   bool IsValid() const { return device_dir_->End() != dir_iter_; }
+
+  const std::string Str() const;
+
   virtual ~DeviceReadHandle();
 
  private:
@@ -123,18 +124,6 @@ class DeviceReadHandle {
 
   Backups backups_;
 };
-
-bool DeviceWriteHandle::Reset(Index index, Offset offset) {
-  return index>=0 ?
-    ( device_dir_->NewFile(index) ? 
-        Reset(DeviceDirIterator(*device_dir_, index), offset) : 
-        false ) :
-    ( -1 != device_dir_->GetLastIndex() ? 
-        Reset(device_dir_->Last(), offset) : 
-        ( device_dir_->NewFile() ? 
-            Reset(DeviceDirIterator(*device_dir_, 0), offset) :
-            false ) );
-}
 
 bool DeviceWriteHandle::HasSpaceForNewLog(
     const FlushMsg& msg) {
